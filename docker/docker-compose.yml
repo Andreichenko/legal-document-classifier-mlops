@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  legal-classifier-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+    volumes:
+      # Mount source code for development (optional)
+      - ../src:/app/src:ro
+      - ../data:/app/data:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - legal-network
+
+  # Optional: Add a simple test client
+  test-client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["python", "test_api.py"]
+    depends_on:
+      - legal-classifier-api
+    environment:
+      - API_URL=http://legal-classifier-api:8000
+    networks:
+      - legal-network
+
+networks:
+  legal-network:
+    driver: bridge 

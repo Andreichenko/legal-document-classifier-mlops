@@ -112,10 +112,27 @@ legal-document-classifier-mlops/
 
 ### Docker Development
 
+#### Option 1: Using Docker Compose
 ```bash
 cd docker
 docker-compose up --build
 ```
+
+#### Option 2: Using automated script
+```bash
+./docker/build_and_run.sh
+```
+
+#### Option 3: Manual Docker build
+```bash
+# Build the image
+docker build -f docker/Dockerfile -t legal-classifier:latest .
+
+# Run the container
+docker run -d --name legal-classifier-api -p 8000:8000 legal-classifier:latest
+```
+
+For detailed Docker instructions, see [docker/README.md](docker/README.md).
 
 ## 🏗️ Infrastructure Deployment
 
