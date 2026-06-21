@@ -1,211 +1,203 @@
-# Legal Document Classifier - MLOps Project
+# Legal Document Classifier - MLOps Service
 
-## 🎯 Project Overview
+Production-grade microservice for classifying legal documents (contracts, lawsuits, complaints, requests) into categories using machine learning. The service is built with FastAPI and scikit-learn, containerized with Docker, monitored with Prometheus, and deployed on AWS ECS (Fargate) using Terraform.
 
-This project demonstrates a complete MLOps pipeline for a legal document classification service. It includes:
+## 📊 System Architecture
 
-- **ML Model**: Text classification for legal documents (contracts, lawsuits, complaints, requests)
-- **API Service**: FastAPI-based REST API for document classification
-- **Containerization**: Docker containerization for deployment
-- **Infrastructure**: AWS ECS deployment with Terraform
-- **CI/CD**: GitHub Actions pipeline
-- **Monitoring**: CloudWatch integration and health checks
-
-## 🏗️ Architecture
-
+```mermaid
+graph TD
+    Client[Client App / curl] -->|HTTP:80| ALB[Application Load Balancer]
+    ALB -->|HTTP:8000| ECS[ECS Fargate Service]
+    subgraph AWS VPC
+        ALB
+        subgraph Private Subnets
+            ECS
+        end
+    end
+    ECS -->|Logs| CW[CloudWatch Logs]
+    ECS -->|Pull Image| ECR[ECR Repository]
+    Prometheus[Prometheus / Scraper] -.->|HTTP:80/metrics| ALB
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client App    │───▶│   FastAPI API   │───▶│   ML Model      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   Docker        │
-                       │   Container     │
-                       └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   AWS ECS       │
-                       │   (Fargate)     │
-                       └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   CloudWatch    │
-                       │   Monitoring    │
-                       └─────────────────┘
-```
+
+---
+
+## 🛠️ Technology Stack
+
+* **Machine Learning**: Python 3.10, scikit-learn, TF-IDF, Logistic Regression, Simplemma (multilingual lemmatization)
+* **REST API**: FastAPI, Uvicorn, Pydantic
+* **Monitoring**: Prometheus (via `prometheus-fastapi-instrumentator`)
+* **Containerization**: Docker, Docker Compose
+* **Infrastructure**: AWS VPC, ECS Fargate, ECR, Application Load Balancer (ALB), CloudWatch
+* **IaC**: Terraform (>= 1.0)
+* **CI/CD**: GitHub Actions
+
+---
 
 ## 📁 Project Structure
 
-```
+```text
 legal-document-classifier-mlops/
+├── .github/workflows/      # CI/CD pipelines
+│   └── deploy.yml         # Deployment workflow to AWS ECS
+├── aws/                    # AWS local configuration templates
+├── data/                   # Dataset directory
+│   └── training_data.csv  # Training dataset (generated)
+├── docker/                 # Containerization configs
+│   ├── Dockerfile         # API application container definition
+│   ├── docker-compose.yml # Local multi-container development
+│   └── test_container.py  # Health and functionality tests inside Docker
 ├── src/                    # Source code
-│   ├── main.py            # FastAPI application
-│   ├── train_model.py     # ML model training
-│   └── prepare_data.py    # Data preparation
-├── data/                   # Data files
-│   └── training_data.csv  # Training dataset
-├── docker/                 # Docker configuration
-│   ├── Dockerfile         # Container definition
-│   └── docker-compose.yml # Local development
-├── aws/                    # AWS configuration
-│   └── task-definition.json
+│   ├── main.py            # FastAPI application serving classifications
+│   ├── nlp_utils.py       # Lemmatization utilities (ru, en, de, lt)
+│   ├── prepare_data.py    # Training data preparation script
+│   └── train_model.py     # Model training and evaluation script
 ├── terraform/              # Infrastructure as Code
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
-├── test/                   # Tests
-│   └── load_test.py       # Load testing
-├── docs/                   # Documentation
-├── requirements.txt        # Python dependencies
-└── README.md              # This file
+│   ├── modules/           # Reusable Terraform modules (VPC)
+│   ├── main.tf            # Main deployment configurations
+│   ├── variables.tf       # Parameter declarations
+│   └── outputs.tf         # Resource endpoints outputs
+├── requirements.txt        # Python dependency manifest
+├── run_api.py              # local API startup utility
+├── test_api.py             # Integration test script
+└── README.md              # Service documentation (this file)
 ```
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
+## 🚀 Quick Start & Local Development
 
-- Python 3.9+
-- Docker
-- AWS CLI configured
-- Terraform
+### 1. Installation
 
-### Local Development
+Clone the repository and install the dependencies:
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd legal-document-classifier-mlops
-   ```
+```bash
+git clone <your-repo-url>
+cd legal-document-classifier-mlops
 
-2. **Set up virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   # or venv\Scripts\activate  # Windows
-   ```
+# Recommended: setup python virtualenv
+python3 -m venv .venv
+source .venv/bin/activate
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+# Install requirements
+pip install -r requirements.txt
+```
 
-4. **Prepare data and train model**
-   ```bash
-   python src/prepare_data.py
-   python src/train_model.py
-   ```
+### 2. Model Training
 
-5. **Run API locally**
-   ```bash
-   python src/main.py
-   ```
+Generate the training data and train the classifier:
 
-6. **Test the API**
-   ```bash
-   curl -X POST "http://localhost:8000/classify" \
-        -H "Content-Type: application/json" \
-        -d '{"text": "Договор поставки товаров"}'
-   ```
+```bash
+# Generate synthetic dataset
+python3 src/prepare_data.py
 
-### Docker Development
+# Train the model with multilingual lemmatization
+python3 src/train_model.py
+```
 
-#### Option 1: Using Docker Compose
+### 3. Running API Service
+
+Start the FastAPI application:
+
+```bash
+python3 run_api.py
+```
+
+The service will be available locally at `http://localhost:8000`.
+
+---
+
+## 🐳 Docker Deployment
+
+### Local Container Execution
+
+You can build and run the containerized API using the helper script or manual Docker commands:
+
+```bash
+# Build and run using the helper script
+./docker/build_and_run.sh
+
+# Or build and run manually
+docker build -f docker/Dockerfile -t legal-classifier:latest .
+docker run -d --name legal-classifier-api -p 8000:8000 legal-classifier:latest
+```
+
+### Docker Compose
+
+Start the application using Docker Compose:
+
 ```bash
 cd docker
 docker-compose up --build
 ```
 
-#### Option 2: Using automated script
+### Verification
+
+Run the container integration tests:
+
 ```bash
-./docker/build_and_run.sh
+python3 docker/test_container.py
 ```
 
-#### Option 3: Manual Docker build
-```bash
-# Build the image
-docker build -f docker/Dockerfile -t legal-classifier:latest .
+---
 
-# Run the container
-docker run -d --name legal-classifier-api -p 8000:8000 legal-classifier:latest
+## 📊 API Documentation & Endpoints
+
+Interactive documentation is available at:
+* **Swagger UI**: `http://localhost:8000/docs`
+* **ReDoc**: `http://localhost:8000/redoc`
+
+### Endpoints Overview
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/` | `GET` | Service summary & version metadata |
+| `/health` | `GET` | Service health status and loaded model details |
+| `/classify` | `POST` | Predict the category for a legal document |
+| `/classify/batch` | `POST` | Batch classification (up to 100 texts) |
+| `/categories` | `GET` | Retrieve allowed categories and descriptions |
+| `/model/info` | `GET` | Details about the currently active model pipeline |
+| `/metrics` | `GET` | Prometheus instrumentation metrics endpoint |
+
+### Classification Request Example
+
+```bash
+curl -X POST "http://localhost:8000/classify" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Supply agreement between ABC Corp and XYZ Ltd for goods delivery"}'
 ```
 
-For detailed Docker instructions, see [docker/README.md](docker/README.md).
+---
 
-## 🏗️ Infrastructure Deployment
+## 🏗️ AWS Production Deployment
 
-### Using Terraform
+Deployment utilizes Terraform to spin up VPC networking, ECR image registry, ECS Fargate compute, and ALB load balancing.
 
-1. **Initialize Terraform**
-   ```bash
-   cd terraform
-   terraform init
-   ```
+### 1. GitHub Actions (Automated CI/CD)
 
-2. **Deploy infrastructure**
-   ```bash
-   terraform plan
-   terraform apply
-   ```
+Configure GitHub Secrets for your repository:
+* `AWS_ACCESS_KEY_ID`: Your AWS access key
+* `AWS_SECRET_ACCESS_KEY`: Your AWS secret access key
 
-3. **Deploy application**
-   ```bash
-   ./deploy.sh
-   ```
+Push to `main` or `develop` branch to trigger the automated test, build, and deploy pipeline.
 
-## 📊 API Documentation
+### 2. Manual CLI Deployment
 
-Once the API is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+Configure AWS CLI and execute the deployment helper script:
 
-### API Endpoints
-
-- `GET /` - Health check
-- `GET /health` - Detailed health status
-- `POST /classify` - Classify document text
-- `GET /categories` - Get available categories
-
-## 🧪 Testing
-
-### Unit Tests
 ```bash
-pytest test/
+# Log in to AWS CLI
+aws configure
+
+# Run automated pipeline deployment (creates resources, builds and pushes Docker image)
+./deploy.sh sandbox
 ```
 
-### Load Testing
+### Useful CLI Commands for Inspection
+
 ```bash
-python test/load_test.py
+# View ECS service details
+aws ecs describe-services --cluster legal-classifier-dev --services legal-classifier-dev
+
+# Stream logs from CloudWatch
+aws logs tail /ecs/legal-classifier-dev --follow
 ```
-
-## 📈 Monitoring
-
-- **Prometheus Metrics**: Available at `/metrics` endpoint, exposing HTTP request statistics (rates, latencies, status codes) and system/Python runtime metrics.
-- **CloudWatch Logs**: Application logs
-- **CloudWatch Metrics**: Performance metrics
-- **Health Checks**: Automatic health monitoring
-
-## 🔧 Configuration
-
-Environment variables:
-- `LOG_LEVEL`: Logging level (INFO, DEBUG, ERROR)
-- `AWS_REGION`: AWS region for deployment
-- `MODEL_PATH`: Path to the ML model file
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🆘 Support
-
-For questions and support, please open an issue in the GitHub repository. 
