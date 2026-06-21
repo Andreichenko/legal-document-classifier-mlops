@@ -13,6 +13,7 @@ import os
 import json
 from typing import Dict, List, Optional
 from datetime import datetime
+from nlp_utils import lemmatize_text
 
 # Configure logging
 logging.basicConfig(

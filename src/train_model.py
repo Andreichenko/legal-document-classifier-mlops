@@ -14,6 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split, cross_val_score
 import numpy as np
+from nlp_utils import lemmatize_text
 
 class LegalDocumentClassifier:
     """
@@ -31,6 +32,7 @@ class LegalDocumentClassifier:
         self.pipeline = Pipeline([
             ('tfidf', TfidfVectorizer(
                 max_features=1000,
+                preprocessor=lemmatize_text,
                 stop_words=None,  # No stop words for Russian legal text
                 ngram_range=(1, 2),  # Use unigrams and bigrams
                 min_df=1,
