@@ -39,21 +39,24 @@ fi
 
 echo "✅ AWS credentials configured"
 
+# Initialize Terraform
+echo "📋 Initializing Terraform..."
+cd terraform
+terraform init
+
+# Create ECR repository via Terraform target first
+echo "📦 Creating ECR repository via Terraform..."
+terraform apply -target=aws_ecr_repository.legal_classifier -var="environment=$ENVIRONMENT" -var="aws_region=$AWS_REGION" -auto-approve
+
+# Get ECR repository URL
+ECR_REPO=$(terraform output -raw ecr_repository_url)
+cd ..
+
+echo "✅ ECR Repository: $ECR_REPO"
+
 # Build Docker image
 echo "🐳 Building Docker image..."
 docker build -f docker/Dockerfile -t $PROJECT_NAME:$ENVIRONMENT .
-
-# Get ECR repository URL
-echo "📦 Getting ECR repository URL..."
-ECR_REPO=$(aws ecr describe-repositories --repository-names $PROJECT_NAME-$ENVIRONMENT --query 'repositories[0].repositoryUri' --output text 2>/dev/null || echo "")
-
-if [ -z "$ECR_REPO" ]; then
-    echo "📦 Creating ECR repository..."
-    aws ecr create-repository --repository-name $PROJECT_NAME-$ENVIRONMENT --region $AWS_REGION
-    ECR_REPO=$(aws ecr describe-repositories --repository-names $PROJECT_NAME-$ENVIRONMENT --query 'repositories[0].repositoryUri' --output text)
-fi
-
-echo "✅ ECR Repository: $ECR_REPO"
 
 # Login to ECR
 echo "🔑 Logging in to ECR..."
@@ -71,10 +74,6 @@ echo "✅ Image pushed to ECR"
 # Deploy infrastructure with Terraform
 echo "🏗️ Deploying infrastructure with Terraform..."
 cd terraform
-
-# Initialize Terraform
-echo "📋 Initializing Terraform..."
-terraform init
 
 # Plan deployment
 echo "📋 Planning deployment..."
