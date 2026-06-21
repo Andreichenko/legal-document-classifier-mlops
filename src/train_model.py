@@ -9,7 +9,7 @@ import os
 import json
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split, cross_val_score
@@ -17,7 +17,7 @@ import numpy as np
 
 class LegalDocumentClassifier:
     """
-    Legal document classification model using TF-IDF and Naive Bayes.
+    Legal document classification model using TF-IDF and Logistic Regression.
     """
     
     def __init__(self):
@@ -26,7 +26,7 @@ class LegalDocumentClassifier:
         
     def create_pipeline(self):
         """
-        Create the ML pipeline with TF-IDF vectorization and Naive Bayes classifier.
+        Create the ML pipeline with TF-IDF vectorization and Logistic Regression classifier.
         """
         self.pipeline = Pipeline([
             ('tfidf', TfidfVectorizer(
@@ -36,7 +36,7 @@ class LegalDocumentClassifier:
                 min_df=1,
                 max_df=0.95
             )),
-            ('classifier', MultinomialNB(alpha=1.0))
+            ('classifier', LogisticRegression(C=1.0, max_iter=1000))
         ])
         
     def train(self, X_train, y_train):
