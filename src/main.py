@@ -14,6 +14,7 @@ import json
 from typing import Dict, List, Optional
 from datetime import datetime
 from nlp_utils import lemmatize_text
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +31,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Instrument FastAPI app with Prometheus metrics
+Instrumentator().instrument(app).expose(app)
 
 # Add CORS middleware
 app.add_middleware(
