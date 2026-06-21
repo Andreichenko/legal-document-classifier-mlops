@@ -182,6 +182,7 @@ python test/load_test.py
 
 ## 📈 Monitoring
 
+- **Prometheus Metrics**: Available at `/metrics` endpoint, exposing HTTP request statistics (rates, latencies, status codes) and system/Python runtime metrics.
 - **CloudWatch Logs**: Application logs
 - **CloudWatch Metrics**: Performance metrics
 - **Health Checks**: Automatic health monitoring
